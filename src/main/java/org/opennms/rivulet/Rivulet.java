@@ -1,0 +1,115 @@
+/*******************************************************************************
+ * This file is part of OpenNMS(R).
+ *
+ * Copyright (C) 2019 The OpenNMS Group, Inc.
+ * OpenNMS(R) is Copyright (C) 1999-2019 The OpenNMS Group, Inc.
+ *
+ * OpenNMS(R) is a registered trademark of The OpenNMS Group, Inc.
+ *
+ * OpenNMS(R) is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published
+ * by the Free Software Foundation, either version 3 of the License,
+ * or (at your option) any later version.
+ *
+ * OpenNMS(R) is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with OpenNMS(R).  If not, see:
+ *      http://www.gnu.org/licenses/
+ *
+ * For more information contact:
+ *     OpenNMS(R) Licensing <license@opennms.org>
+ *     http://www.opennms.org/
+ *     http://www.opennms.com/
+ *******************************************************************************/
+
+package org.opennms.rivulet;
+
+import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+
+import org.kohsuke.args4j.Argument;
+import org.kohsuke.args4j.CmdLineException;
+import org.kohsuke.args4j.CmdLineParser;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import io.pkts.PacketHandler;
+import io.pkts.Pcap;
+
+public class Rivulet {
+    private final static Logger LOG = LoggerFactory.getLogger(Rivulet.class);
+
+    public final Path file;
+    public final Proto proto;
+
+    public Rivulet(final CmdLine cmdLine) {
+        this.file = cmdLine.file;
+        this.proto = cmdLine.proto;
+    }
+
+    public static void main(final String... args) throws Exception {
+        final CmdLine cmdLine = new CmdLine();
+        final CmdLineParser parser = new CmdLineParser(cmdLine);
+        try {
+            parser.parseArgument(args);
+        } catch (final CmdLineException e) {
+            System.err.println(e.getMessage());
+            parser.printUsage(System.err);
+            System.err.println();
+            System.exit(1);
+        }
+
+        final Rivulet app = new Rivulet(cmdLine);
+        app.run();
+    }
+
+    private void run() throws Exception {
+        try (final InputStream in = Files.newInputStream(this.file)) {
+            final Pcap pcap = Pcap.openStream(in);
+
+            final PacketHandler handler;
+            switch (this.proto) {
+                case Netflow5:
+                    handler = null;
+                    break;
+
+                case Netflow9:
+                    handler = new Netflow9UdpHandler(this);
+                    break;
+
+                case IPFIX:
+                    handler = null;
+                    break;
+
+                case SFlow:
+                    handler = null;
+                    break;
+
+                default:
+                    throw new RuntimeException("unreachable");
+            }
+
+            pcap.loop(handler);
+        }
+    }
+
+    public enum Proto {
+        Netflow5,
+        Netflow9,
+        IPFIX,
+        SFlow,
+    }
+
+    public static class CmdLine {
+        @Argument(index = 0, metaVar = "FILE", required = true)
+        private Path file;
+
+        @Argument(index = 1, metaVar = "PROTO", required = true)
+        private Proto proto;
+    }
+}
