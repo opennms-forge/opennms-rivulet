@@ -26,18 +26,22 @@
  *     http://www.opennms.com/
  *******************************************************************************/
 
-package org.opennms.rivulet;
+package org.opennms.rivulet.handlers;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
-import java.time.Duration;
-import java.util.concurrent.ScheduledExecutorService;
+import java.util.List;
+import java.util.Objects;
 
-import org.opennms.netmgt.telemetry.protocols.netflow.parser.Netflow5UdpParser;
-import org.opennms.netmgt.telemetry.protocols.netflow.parser.Netflow9UdpParser;
-import org.opennms.netmgt.telemetry.protocols.netflow.parser.session.Session;
-import org.opennms.netmgt.telemetry.protocols.netflow.parser.session.UdpSessionManager;
+import org.bson.BsonDocument;
+import org.json.JSONObject;
+import org.opennms.netmgt.flows.api.Converter;
+import org.opennms.netmgt.flows.api.Flow;
+import org.opennms.netmgt.flows.elastic.FlowDocument;
+import org.opennms.netmgt.telemetry.listeners.UdpParser;
+import org.opennms.rivulet.FakeDispatcher;
+import org.opennms.rivulet.Rivulet;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -47,23 +51,24 @@ import io.pkts.packet.Packet;
 import io.pkts.packet.UDPPacket;
 import io.pkts.protocol.Protocol;
 
-public class Netflow9UdpHandler implements PacketHandler {
-    private final static Logger LOG = LoggerFactory.getLogger(Netflow9UdpHandler.class);
+public final class Handler implements PacketHandler {
 
-    private final ScheduledExecutorService executorService = new DefaultEventExecutor();
+    private final static Logger LOG = LoggerFactory.getLogger(Handler.class);
 
-    private final Netflow9UdpParser parser;
+    private final UdpParser parser;
+    private final Converter<BsonDocument> converter;
 
-    public Netflow9UdpHandler(final Rivulet rivulet) {
-        this.parser = new Netflow9UdpParser("rivulet:netflow9:udp", new OutputDispatcher());
-        this.parser.start(this.executorService);
+    public Handler(final Rivulet rivulet, final HandlerFactory factory) {
+        this.parser = Objects.requireNonNull(factory.parser(new FakeDispatcher(this::handle, rivulet.logTransport)));
+        this.converter = Objects.requireNonNull(factory.converter());
+
+        this.parser.start(new DefaultEventExecutor());
     }
 
     @Override
     public boolean nextPacket(final Packet packet) throws IOException {
         if (packet.hasProtocol(Protocol.UDP)) {
             final UDPPacket udp = (UDPPacket) packet.getPacket(Protocol.UDP);
-            LOG.trace("{}", udp);
 
             final InetSocketAddress remoteAddress = InetSocketAddress.createUnresolved(udp.getSourceIP(), udp.getSourcePort());
             final InetSocketAddress localAddress = InetSocketAddress.createUnresolved(udp.getDestinationIP(), udp.getDestinationPort());
@@ -77,5 +82,14 @@ public class Netflow9UdpHandler implements PacketHandler {
             }
         }
         return true;
+    }
+
+    private void handle(final BsonDocument doc) {
+        final List<Flow> flows = this.converter.convert(doc);
+
+        for (final Flow flow : flows) {
+            final FlowDocument document = FlowDocument.from(flow);
+            System.out.println(new JSONObject(document).toString());
+        }
     }
 }

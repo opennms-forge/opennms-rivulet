@@ -35,21 +35,25 @@ import java.nio.file.Path;
 import org.kohsuke.args4j.Argument;
 import org.kohsuke.args4j.CmdLineException;
 import org.kohsuke.args4j.CmdLineParser;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.kohsuke.args4j.Option;
+import org.opennms.rivulet.handlers.Handler;
+import org.opennms.rivulet.handlers.HandlerFactory;
+import org.opennms.rivulet.handlers.IpfixUdpHandlerFactory;
+import org.opennms.rivulet.handlers.Netflow5UdpHandlerFactory;
+import org.opennms.rivulet.handlers.Netflow9UdpHandlerFactory;
 
-import io.pkts.PacketHandler;
 import io.pkts.Pcap;
 
 public class Rivulet {
-    private final static Logger LOG = LoggerFactory.getLogger(Rivulet.class);
-
     public final Path file;
     public final Proto proto;
+
+    public final boolean logTransport;
 
     public Rivulet(final CmdLine cmdLine) {
         this.file = cmdLine.file;
         this.proto = cmdLine.proto;
+        this.logTransport = cmdLine.logTransport;
     }
 
     public static void main(final String... args) throws Exception {
@@ -72,28 +76,28 @@ public class Rivulet {
         try (final InputStream in = Files.newInputStream(this.file)) {
             final Pcap pcap = Pcap.openStream(in);
 
-            final PacketHandler handler;
+            final HandlerFactory factory;
             switch (this.proto) {
                 case Netflow5:
-                    handler = null;
+                    factory = new Netflow5UdpHandlerFactory();
                     break;
 
                 case Netflow9:
-                    handler = new Netflow9UdpHandler(this);
+                    factory = new Netflow9UdpHandlerFactory();
                     break;
 
                 case IPFIX:
-                    handler = null;
+                    factory = new IpfixUdpHandlerFactory();
                     break;
 
                 case SFlow:
-                    handler = null;
-                    break;
+                    throw new RuntimeException("Not yet implemented");
 
                 default:
                     throw new RuntimeException("unreachable");
             }
 
+            final Handler handler = new Handler(this, factory);
             pcap.loop(handler);
         }
     }
@@ -111,5 +115,8 @@ public class Rivulet {
 
         @Argument(index = 1, metaVar = "PROTO", required = true)
         private Proto proto;
+
+        @Option(name = "-log-transport")
+        private boolean logTransport = false;
     }
 }

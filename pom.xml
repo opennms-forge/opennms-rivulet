@@ -88,6 +88,12 @@
         </dependency>
 
         <dependency>
+            <groupId>org.opennms.features.flows</groupId>
+            <artifactId>org.opennms.features.flows.elastic</artifactId>
+            <version>${opennms.version}</version>
+        </dependency>
+
+        <dependency>
             <groupId>org.osgi</groupId>
             <artifactId>org.osgi.core</artifactId>
             <version>6.0.0</version>

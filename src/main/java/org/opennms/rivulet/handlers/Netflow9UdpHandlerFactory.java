@@ -26,30 +26,28 @@
  *     http://www.opennms.com/
  *******************************************************************************/
 
-package org.opennms.rivulet;
-
-import java.util.concurrent.CompletableFuture;
+package org.opennms.rivulet.handlers;
 
 import org.bson.BsonDocument;
-import org.bson.RawBsonDocument;
 import org.opennms.core.ipc.sink.api.AsyncDispatcher;
+import org.opennms.netmgt.flows.api.Converter;
 import org.opennms.netmgt.telemetry.api.receiver.TelemetryMessage;
+import org.opennms.netmgt.telemetry.listeners.UdpParser;
+import org.opennms.netmgt.telemetry.protocols.netflow.adapter.netflow9.Netflow9Converter;
+import org.opennms.netmgt.telemetry.protocols.netflow.parser.Netflow9UdpParser;
+import org.opennms.rivulet.FakeDispatcher;
+import org.opennms.rivulet.Rivulet;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-public class OutputDispatcher implements AsyncDispatcher<TelemetryMessage> {
+public class Netflow9UdpHandlerFactory extends HandlerFactory {
     @Override
-    public CompletableFuture<TelemetryMessage> send(final TelemetryMessage message) {
-        final BsonDocument document = new RawBsonDocument(message.getBuffer().array());
-        System.out.println(document.toJson());
-
-        return CompletableFuture.completedFuture(message);
+    protected UdpParser parser(final AsyncDispatcher<TelemetryMessage> dispatcher) {
+        return new Netflow9UdpParser("rivulet:netflow9:udp", dispatcher);
     }
 
     @Override
-    public int getQueueSize() {
-        return 0;
-    }
-
-    @Override
-    public void close() {
+    protected Converter<BsonDocument> converter() {
+        return new Netflow9Converter();
     }
 }
