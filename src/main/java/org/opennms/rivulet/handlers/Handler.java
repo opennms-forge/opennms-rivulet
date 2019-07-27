@@ -31,19 +31,27 @@ package org.opennms.rivulet.handlers;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
-import java.util.List;
 import java.util.Objects;
 
-import org.bson.BsonDocument;
-import org.json.JSONObject;
-import org.opennms.netmgt.flows.api.Converter;
-import org.opennms.netmgt.flows.api.Flow;
-import org.opennms.netmgt.flows.elastic.FlowDocument;
+import org.opennms.core.ipc.sink.api.AsyncDispatcher;
+import org.opennms.core.utils.InetAddressUtils;
+import org.opennms.distributed.core.api.Identity;
+import org.opennms.netmgt.events.api.EventForwarder;
+import org.opennms.netmgt.flows.api.FlowRepository;
+import org.opennms.netmgt.telemetry.api.adapter.Adapter;
+import org.opennms.netmgt.telemetry.api.adapter.TelemetryMessageLog;
+import org.opennms.netmgt.telemetry.api.receiver.TelemetryMessage;
 import org.opennms.netmgt.telemetry.listeners.UdpParser;
 import org.opennms.rivulet.FakeDispatcher;
+import org.opennms.rivulet.FakeFlowRepository;
+import org.opennms.rivulet.FakeIdentity;
+import org.opennms.rivulet.FakeTelemetryMessageLog;
 import org.opennms.rivulet.Rivulet;
+import org.opennms.rivulet.StderrEventForwarder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.codahale.metrics.MetricRegistry;
 
 import io.netty.util.concurrent.DefaultEventExecutor;
 import io.pkts.PacketHandler;
@@ -56,11 +64,17 @@ public final class Handler implements PacketHandler {
     private final static Logger LOG = LoggerFactory.getLogger(Handler.class);
 
     private final UdpParser parser;
-    private final Converter<BsonDocument> converter;
+    private final Adapter adapter;
 
     public Handler(final Rivulet rivulet, final HandlerFactory factory) {
-        this.parser = Objects.requireNonNull(factory.parser(new FakeDispatcher(this::handle, rivulet.logTransport)));
-        this.converter = Objects.requireNonNull(factory.converter());
+        final AsyncDispatcher<TelemetryMessage> dispatcher = new FakeDispatcher(this::handle, rivulet.logTransport);
+        final EventForwarder eventForwarder = new StderrEventForwarder();
+        final Identity identity = new FakeIdentity();
+        this.parser = Objects.requireNonNull(factory.parser(dispatcher, eventForwarder, identity));
+
+        final MetricRegistry metricRegistry = new MetricRegistry();
+        final FlowRepository flowRepository = new FakeFlowRepository();
+        this.adapter = Objects.requireNonNull(factory.adapter(metricRegistry, flowRepository));
 
         this.parser.start(new DefaultEventExecutor());
     }
@@ -70,8 +84,8 @@ public final class Handler implements PacketHandler {
         if (packet.hasProtocol(Protocol.UDP)) {
             final UDPPacket udp = (UDPPacket) packet.getPacket(Protocol.UDP);
 
-            final InetSocketAddress remoteAddress = InetSocketAddress.createUnresolved(udp.getSourceIP(), udp.getSourcePort());
-            final InetSocketAddress localAddress = InetSocketAddress.createUnresolved(udp.getDestinationIP(), udp.getDestinationPort());
+            final InetSocketAddress remoteAddress = new InetSocketAddress(InetAddressUtils.getInetAddress(udp.getSourceIP()), udp.getSourcePort());
+            final InetSocketAddress localAddress = new InetSocketAddress(InetAddressUtils.getInetAddress(udp.getDestinationIP()), udp.getDestinationPort());
 
             final ByteBuffer buffer = ByteBuffer.wrap(udp.getPayload().getArray());
 
@@ -84,12 +98,13 @@ public final class Handler implements PacketHandler {
         return true;
     }
 
-    private void handle(final BsonDocument doc) {
-        final List<Flow> flows = this.converter.convert(doc);
+    private void handle(final TelemetryMessage telemetryMessage) {
+        final TelemetryMessageLog messageLog = new FakeTelemetryMessageLog(
+                InetAddressUtils.toIpAddrString(telemetryMessage.getSource().getAddress()),
+                telemetryMessage.getSource().getPort(),
+                telemetryMessage.getReceivedAt().getTime(),
+                telemetryMessage.getBuffer().array());
 
-        for (final Flow flow : flows) {
-            final FlowDocument document = FlowDocument.from(flow);
-            System.out.println(new JSONObject(document).toString());
-        }
+        this.adapter.handleMessageLog(messageLog);
     }
 }

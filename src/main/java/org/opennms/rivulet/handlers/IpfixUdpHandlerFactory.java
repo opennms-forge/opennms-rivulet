@@ -28,24 +28,29 @@
 
 package org.opennms.rivulet.handlers;
 
-import org.bson.BsonDocument;
 import org.opennms.core.ipc.sink.api.AsyncDispatcher;
-import org.opennms.netmgt.flows.api.Converter;
+import org.opennms.distributed.core.api.Identity;
+import org.opennms.netmgt.events.api.EventForwarder;
+import org.opennms.netmgt.flows.api.FlowRepository;
+import org.opennms.netmgt.telemetry.api.adapter.Adapter;
 import org.opennms.netmgt.telemetry.api.receiver.TelemetryMessage;
 import org.opennms.netmgt.telemetry.listeners.UdpParser;
-import org.opennms.netmgt.telemetry.protocols.netflow.adapter.ipfix.IpfixConverter;
-import org.opennms.netmgt.telemetry.protocols.netflow.adapter.netflow9.Netflow9Converter;
+import org.opennms.netmgt.telemetry.protocols.netflow.adapter.ipfix.IpfixAdapter;
 import org.opennms.netmgt.telemetry.protocols.netflow.parser.IpfixUdpParser;
-import org.opennms.netmgt.telemetry.protocols.netflow.parser.Netflow9UdpParser;
 
-public class IpfixUdpHandlerFactory extends HandlerFactory {
+import com.codahale.metrics.MetricRegistry;
+
+public class IpfixUdpHandlerFactory implements HandlerFactory {
     @Override
-    protected UdpParser parser(final AsyncDispatcher<TelemetryMessage> dispatcher) {
-        return new IpfixUdpParser("rivulet:ipfix:udp", dispatcher);
+    public UdpParser parser(final AsyncDispatcher<TelemetryMessage> dispatcher,
+                               final EventForwarder eventForwarder,
+                               final Identity identity) {
+        return new IpfixUdpParser("rivulet:ipfix:udp", dispatcher, eventForwarder, identity);
     }
 
     @Override
-    protected Converter<BsonDocument> converter() {
-        return new IpfixConverter();
+    public Adapter adapter(final MetricRegistry metricRegistry,
+                              final FlowRepository flowRepository) {
+        return new IpfixAdapter(metricRegistry, flowRepository);
     }
 }

@@ -28,45 +28,22 @@
 
 package org.opennms.rivulet;
 
-import java.util.Objects;
-import java.util.concurrent.CompletableFuture;
-import java.util.function.Consumer;
+import org.opennms.distributed.core.api.Identity;
+import org.opennms.netmgt.dao.api.MonitoringLocationDao;
 
-import org.bson.BsonDocument;
-import org.bson.RawBsonDocument;
-import org.opennms.core.ipc.sink.api.AsyncDispatcher;
-import org.opennms.netmgt.telemetry.api.receiver.TelemetryMessage;
-
-public class FakeDispatcher implements AsyncDispatcher<TelemetryMessage> {
-
-    private final Consumer<TelemetryMessage> consumer;
-    private final boolean log;
-
-    public FakeDispatcher(final Consumer<TelemetryMessage> consumer,
-                          final boolean log) {
-        this.consumer = Objects.requireNonNull(consumer);
-        this.log = log;
+public class FakeIdentity implements Identity {
+    @Override
+    public String getId() {
+        return "rivulet";
     }
 
     @Override
-    public CompletableFuture<TelemetryMessage> send(final TelemetryMessage message) {
-        final BsonDocument document = new RawBsonDocument(message.getBuffer().array());
-
-        if (this.log) {
-            System.out.println(document.toJson());
-        }
-
-        consumer.accept(message);
-
-        return CompletableFuture.completedFuture(message);
+    public String getLocation() {
+        return MonitoringLocationDao.DEFAULT_MONITORING_LOCATION_ID;
     }
 
     @Override
-    public int getQueueSize() {
-        return 0;
-    }
-
-    @Override
-    public void close() {
+    public String getType() {
+        return "rivulet";
     }
 }

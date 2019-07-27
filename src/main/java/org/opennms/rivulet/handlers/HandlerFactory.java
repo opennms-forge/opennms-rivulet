@@ -28,15 +28,23 @@
 
 package org.opennms.rivulet.handlers;
 
-import org.bson.BsonDocument;
 import org.opennms.core.ipc.sink.api.AsyncDispatcher;
-import org.opennms.netmgt.flows.api.Converter;
+import org.opennms.distributed.core.api.Identity;
+import org.opennms.netmgt.events.api.EventForwarder;
+import org.opennms.netmgt.flows.api.FlowRepository;
+import org.opennms.netmgt.telemetry.api.adapter.Adapter;
 import org.opennms.netmgt.telemetry.api.receiver.TelemetryMessage;
 import org.opennms.netmgt.telemetry.listeners.UdpParser;
 
-public abstract class HandlerFactory {
+import com.codahale.metrics.MetricRegistry;
 
-    protected abstract UdpParser parser(final AsyncDispatcher<TelemetryMessage> dispatcher);
-    protected abstract Converter<BsonDocument> converter();
+public interface HandlerFactory {
+
+    UdpParser parser(final AsyncDispatcher<TelemetryMessage> dispatcher,
+                     final EventForwarder eventForwarder,
+                     final Identity identity);
+
+    Adapter adapter(final MetricRegistry metricRegistry,
+                    final FlowRepository flowRepository);
 
 }

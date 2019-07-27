@@ -28,45 +28,30 @@
 
 package org.opennms.rivulet;
 
-import java.util.Objects;
-import java.util.concurrent.CompletableFuture;
-import java.util.function.Consumer;
+import org.opennms.netmgt.events.api.EventForwarder;
+import org.opennms.netmgt.xml.event.Event;
+import org.opennms.netmgt.xml.event.Log;
 
-import org.bson.BsonDocument;
-import org.bson.RawBsonDocument;
-import org.opennms.core.ipc.sink.api.AsyncDispatcher;
-import org.opennms.netmgt.telemetry.api.receiver.TelemetryMessage;
-
-public class FakeDispatcher implements AsyncDispatcher<TelemetryMessage> {
-
-    private final Consumer<TelemetryMessage> consumer;
-    private final boolean log;
-
-    public FakeDispatcher(final Consumer<TelemetryMessage> consumer,
-                          final boolean log) {
-        this.consumer = Objects.requireNonNull(consumer);
-        this.log = log;
+public class StderrEventForwarder implements EventForwarder {
+    @Override
+    public void sendNow(Event event) {
+        this.sendNowSync(event);
     }
 
     @Override
-    public CompletableFuture<TelemetryMessage> send(final TelemetryMessage message) {
-        final BsonDocument document = new RawBsonDocument(message.getBuffer().array());
+    public void sendNow(Log eventLog) {
+        this.sendNowSync(eventLog);
+    }
 
-        if (this.log) {
-            System.out.println(document.toJson());
+    @Override
+    public void sendNowSync(Event event) {
+        System.err.println(event.toString());
+    }
+
+    @Override
+    public void sendNowSync(Log eventLog) {
+        for (final Event event : eventLog.getEvents().getEventCollection()) {
+            System.err.println(event.toString());
         }
-
-        consumer.accept(message);
-
-        return CompletableFuture.completedFuture(message);
-    }
-
-    @Override
-    public int getQueueSize() {
-        return 0;
-    }
-
-    @Override
-    public void close() {
     }
 }
