@@ -32,33 +32,21 @@ import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 
-import org.bson.BsonDocument;
-import org.bson.RawBsonDocument;
 import org.opennms.core.ipc.sink.api.AsyncDispatcher;
 import org.opennms.netmgt.telemetry.api.receiver.TelemetryMessage;
 
 public class FakeDispatcher implements AsyncDispatcher<TelemetryMessage> {
 
     private final Consumer<TelemetryMessage> consumer;
-    private final boolean log;
 
-    public FakeDispatcher(final Consumer<TelemetryMessage> consumer,
-                          final boolean log) {
+    public FakeDispatcher(final Consumer<TelemetryMessage> consumer) {
         this.consumer = Objects.requireNonNull(consumer);
-        this.log = log;
     }
 
     @Override
-    public CompletableFuture<TelemetryMessage> send(final TelemetryMessage message) {
-        final BsonDocument document = new RawBsonDocument(message.getBuffer().array());
-
-        if (this.log) {
-            System.out.println(document.toJson());
-        }
-
+    public CompletableFuture<DispatchStatus> send(final TelemetryMessage message) {
         consumer.accept(message);
-
-        return CompletableFuture.completedFuture(message);
+        return CompletableFuture.completedFuture(DispatchStatus.DISPATCHED);
     }
 
     @Override
