@@ -1,8 +1,8 @@
 /*******************************************************************************
  * This file is part of OpenNMS(R).
  *
- * Copyright (C) 2019 The OpenNMS Group, Inc.
- * OpenNMS(R) is Copyright (C) 1999-2019 The OpenNMS Group, Inc.
+ * Copyright (C) 2020 The OpenNMS Group, Inc.
+ * OpenNMS(R) is Copyright (C) 1999-2020 The OpenNMS Group, Inc.
  *
  * OpenNMS(R) is a registered trademark of The OpenNMS Group, Inc.
  *
@@ -26,25 +26,22 @@
  *     http://www.opennms.com/
  *******************************************************************************/
 
-package org.opennms.rivulet.handlers;
+package org.opennms.rivulet;
 
-import org.opennms.core.ipc.sink.api.AsyncDispatcher;
-import org.opennms.distributed.core.api.Identity;
+import java.net.InetAddress;
+import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
+
 import org.opennms.netmgt.dnsresolver.api.DnsResolver;
-import org.opennms.netmgt.events.api.EventForwarder;
-import org.opennms.netmgt.telemetry.api.receiver.TelemetryMessage;
-import org.opennms.netmgt.telemetry.listeners.UdpParser;
-import org.opennms.netmgt.telemetry.protocols.netflow.parser.Netflow5UdpParser;
 
-import com.codahale.metrics.MetricRegistry;
-
-public class Netflow5UdpHandlerFactory implements HandlerFactory {
+public class FakeDnsResolver implements DnsResolver {
     @Override
-    public UdpParser parser(final AsyncDispatcher<TelemetryMessage> dispatcher,
-                               final EventForwarder eventForwarder,
-                               final Identity identity,
-                               final DnsResolver dnsResolver,
-                               final MetricRegistry metricRegistry) {
-        return new Netflow5UdpParser("rivulet:netflow5:udp", dispatcher, eventForwarder, identity, dnsResolver, metricRegistry);
+    public CompletableFuture<Optional<InetAddress>> lookup(String hostname) {
+        return CompletableFuture.completedFuture(Optional.empty());
+    }
+
+    @Override
+    public CompletableFuture<Optional<String>> reverseLookup(InetAddress inetAddress) {
+        return CompletableFuture.completedFuture(Optional.empty());
     }
 }

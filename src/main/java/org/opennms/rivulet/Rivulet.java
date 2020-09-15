@@ -35,7 +35,6 @@ import java.nio.file.Path;
 import org.kohsuke.args4j.Argument;
 import org.kohsuke.args4j.CmdLineException;
 import org.kohsuke.args4j.CmdLineParser;
-import org.kohsuke.args4j.Option;
 import org.opennms.rivulet.handlers.Handler;
 import org.opennms.rivulet.handlers.HandlerFactory;
 import org.opennms.rivulet.handlers.IpfixUdpHandlerFactory;
@@ -48,12 +47,9 @@ public class Rivulet {
     public final Path file;
     public final Proto proto;
 
-    public final boolean logTransport;
-
     public Rivulet(final CmdLine cmdLine) {
         this.file = cmdLine.file;
         this.proto = cmdLine.proto;
-        this.logTransport = cmdLine.logTransport;
     }
 
     public static void main(final String... args) throws Exception {
@@ -115,8 +111,5 @@ public class Rivulet {
 
         @Argument(index = 1, metaVar = "PROTO", required = true)
         private Proto proto;
-
-        @Option(name = "-log-transport")
-        private boolean logTransport = false;
     }
 }
