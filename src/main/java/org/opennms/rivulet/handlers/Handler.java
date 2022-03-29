@@ -112,7 +112,7 @@ public final class Handler implements PacketHandler {
                 .serializeNulls()
                 .create();
 
-        final NetflowMessage netflowMessage = new NetflowMessage(flowMessage);
+        final NetflowMessage netflowMessage = new NetflowMessage(flowMessage, telemetryMessage.getReceivedAt().toInstant());
         final FlowDocument flowDocument = FlowDocument.from(netflowMessage);
 
         System.out.println(gson.toJson(flowDocument, FlowDocument.class));
