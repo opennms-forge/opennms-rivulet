@@ -1,0 +1,33 @@
+{% set visible = edge != null && edge.namespace == "netflow:overview" %}
+{% set title = "Flow Details" %}
+
+<style>
+table.netflow { border-collapse: collapse; }
+td.netflow + td.netflow,
+th.netflow + th.netflow { border-left: 1px dotted black; padding-left: 5px;  }
+.incomplete { background-color: #eeee11; }
+</style>
+
+<table width="100%" class="netflow">
+    <col width="125px">
+    <tr>
+        <td class="netflow">Input</td>
+        <td class="netflow">{{ edge.properties.INPUT_INTERFACE }}</td>
+    </tr>
+    <tr>
+        <td class="netflow">Output</td>
+        <td class="netflow">{{ edge.properties.OUTPUT_INTERFACE }}</td>
+    </tr>
+    <tr>
+        <td class="netflow">Bytes</td>
+        <td class="netflow">{{ edge.properties.BYTES }} ({{ edge.properties.DISPLAY_BYTES }})</td>
+    </tr>
+    <tr>
+        <td class="netflow">Direction</td>
+        <td class="netflow">{{ edge.properties.DIRECTION }}</td>
+    </tr>
+    <tr>
+        <td class="netflow">VLAN</td>
+        <td class="netflow">{{ edge.properties.VLAN }}</td>
+    </tr>
+</table>

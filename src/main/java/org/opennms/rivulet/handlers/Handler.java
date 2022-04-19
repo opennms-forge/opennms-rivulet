@@ -51,8 +51,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.codahale.metrics.MetricRegistry;
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 import com.google.protobuf.InvalidProtocolBufferException;
 
 import io.netty.buffer.ByteBuf;
@@ -67,9 +65,12 @@ public final class Handler implements PacketHandler {
 
     private final static Logger LOG = LoggerFactory.getLogger(Handler.class);
 
+    private final Rivulet rivulet;
     private final UdpParser parser;
 
     public Handler(final Rivulet rivulet, final HandlerFactory factory) {
+        this.rivulet = Objects.requireNonNull(rivulet);
+
         final AsyncDispatcher<TelemetryMessage> dispatcher = new FakeDispatcher(this::handle);
         final EventForwarder eventForwarder = new StderrEventForwarder();
         final Identity identity = new FakeIdentity();
@@ -108,13 +109,9 @@ public final class Handler implements PacketHandler {
             return;
         }
 
-        final Gson gson = new GsonBuilder()
-                .serializeNulls()
-                .create();
-
         final NetflowMessage netflowMessage = new NetflowMessage(flowMessage, telemetryMessage.getReceivedAt().toInstant());
         final FlowDocument flowDocument = FlowDocument.from(netflowMessage);
-
-        System.out.println(gson.toJson(flowDocument, FlowDocument.class));
+        rivulet.onFlowDocument(flowDocument);
     }
+
 }

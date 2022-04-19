@@ -106,6 +106,22 @@
         </dependency>
 
         <dependency>
+            <groupId>org.opennms.features.topology.plugins.topo</groupId>
+            <artifactId>graphml</artifactId>
+            <version>${opennms.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.opennms.features.graphml</groupId>
+            <artifactId>org.opennms.features.graphml.api</artifactId>
+            <version>${opennms.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>net.sf.jung</groupId>
+            <artifactId>jung-graph-impl</artifactId>
+            <version>2.1</version>
+        </dependency>
+
+        <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
             <version>4.11</version>

@@ -1,0 +1,21 @@
+{% set visible = vertex != null && vertex.namespace == "netflow:overview" %}
+{% set title = "Flow Details" %}
+
+<style>
+table.netflow { border-collapse: collapse; }
+td.netflow + td.netflow,
+th.netflow + th.netflow { border-left: 1px dotted black; padding-left: 5px;  }
+.incomplete { background-color: #eeee11; }
+</style>
+
+<table width="100%" class="netflow">
+    <col width="125px">
+    <tr>
+        <td class="netflow">Bytes In</td>
+        <td class="netflow">{{ vertex.properties.BYTES_IN }} ({{ vertex.properties.DISPLAY_BYTES_IN }})</td>
+    </tr>
+    <tr>
+        <td class="netflow">Bytes Out</td>
+        <td class="netflow">{{ vertex.properties.BYTES_OUT }} ({{ vertex.properties.DISPLAY_BYTES_OUT }})</td>
+    </tr>
+</table>

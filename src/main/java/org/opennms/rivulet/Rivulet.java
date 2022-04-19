@@ -35,17 +35,24 @@ import java.nio.file.Path;
 import org.kohsuke.args4j.Argument;
 import org.kohsuke.args4j.CmdLineException;
 import org.kohsuke.args4j.CmdLineParser;
+import org.opennms.netmgt.flows.elastic.FlowDocument;
 import org.opennms.rivulet.handlers.Handler;
 import org.opennms.rivulet.handlers.HandlerFactory;
 import org.opennms.rivulet.handlers.IpfixUdpHandlerFactory;
 import org.opennms.rivulet.handlers.Netflow5UdpHandlerFactory;
 import org.opennms.rivulet.handlers.Netflow9UdpHandlerFactory;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+
 import io.pkts.Pcap;
 
 public class Rivulet {
     public final Path file;
     public final Proto proto;
+    private final Gson gson = new GsonBuilder()
+            .serializeNulls()
+            .create();
 
     public Rivulet(final CmdLine cmdLine) {
         this.file = cmdLine.file;
@@ -68,7 +75,7 @@ public class Rivulet {
         app.run();
     }
 
-    private void run() throws Exception {
+    protected void run() throws Exception {
         try (final InputStream in = Files.newInputStream(this.file)) {
             final Pcap pcap = Pcap.openStream(in);
 
@@ -98,6 +105,10 @@ public class Rivulet {
         }
     }
 
+    public void onFlowDocument(FlowDocument flowDocument) {
+        System.out.println(gson.toJson(flowDocument, FlowDocument.class));
+    }
+
     public enum Proto {
         Netflow5,
         Netflow9,
@@ -107,9 +118,9 @@ public class Rivulet {
 
     public static class CmdLine {
         @Argument(index = 0, metaVar = "FILE", required = true)
-        private Path file;
+        protected Path file;
 
         @Argument(index = 1, metaVar = "PROTO", required = true)
-        private Proto proto;
+        protected Proto proto;
     }
 }
